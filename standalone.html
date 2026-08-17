@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — EduAnalytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    :root {
+      --bg:    #060a12;
+      --surf:  #0d1220;
+      --card:  rgba(13,18,32,.85);
+      --bdr:   rgba(255,255,255,.07);
+      --text:  #e8edf5;
+      --muted: #4b5a70;
+      --acc:   #6366f1;
+      --grad:      linear-gradient(135deg,#6366f1,#8b5cf6,#d946ef);
+      --grad-admin:   linear-gradient(135deg,#f59e0b,#ef4444);
+      --grad-teacher: linear-gradient(135deg,#10b981,#3b82f6);
+      --glow:  rgba(99,102,241,.22);
+      --r-sm:8px; --r-md:14px; --r-lg:18px; --r-xl:24px;
+      --ff: 'Plus Jakarta Sans', sans-serif;
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:var(--ff); background:var(--bg); color:var(--text); min-height:100vh; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+    @keyframes slideIn { from{opacity:0;transform:translateX(-18px)} to{opacity:1;transform:none} }
+    @keyframes spin    { to{transform:rotate(360deg)} }
+    @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .fade-up  { animation:fadeUp  .4s ease both; }
+    .slide-in { animation:slideIn .35s ease both; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width:252px; background:var(--surf);
+      border-right:1px solid var(--bdr);
+      padding:22px 12px;
+      position:fixed; top:0; bottom:0; left:0;
+      display:flex; flex-direction:column;
+      z-index:200; overflow-y:auto;
+    }
+    .brand-row {
+      display:flex; align-items:center; gap:11px;
+      padding-bottom:18px; border-bottom:1px solid var(--bdr);
+      margin-bottom:16px;
+    }
+    .brand-icon { width:36px;height:36px;background:var(--grad);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0; }
+    .brand-name { font-size:.95rem;font-weight:800; }
+    .brand-sub  { font-size:.68rem;color:var(--muted); }
+
+    .role-pill {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:5px 12px; border-radius:20px;
+      font-size:.7rem; font-weight:700; letter-spacing:.04em;
+      margin-bottom:14px; width:fit-content;
+    }
+    .pill-admin   { background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#fbbf24; }
+    .pill-teacher { background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:#34d399; }
+
+    .nav-section { font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:0 10px;margin:12px 0 4px; }
+    .nav-list { list-style:none;display:flex;flex-direction:column;gap:2px; }
+    .nav-item {
+      display:flex;align-items:center;gap:10px;
+      padding:10px 13px; border-radius:var(--r-md);
+      color:var(--muted); cursor:pointer;
+      font-weight:500; font-size:.88rem;
+      transition:all .16s;
+    }
+    .nav-item:hover  { background:rgba(255,255,255,.05);color:var(--text); }
+    .nav-item.active { background:var(--grad);color:#fff;box-shadow:0 4px 16px var(--glow); }
+    .nav-item.active-admin   { background:var(--grad-admin);   box-shadow:0 4px 16px rgba(245,158,11,.22); }
+    .nav-item.active-teacher { background:var(--grad-teacher); box-shadow:0 4px 16px rgba(16,185,129,.22); }
+    .nav-icon { width:20px;text-align:center;font-size:.95rem; }
+
+    .sidebar-footer { margin-top:auto;border-top:1px solid var(--bdr);padding-top:14px; }
+    .user-row { display:flex;align-items:center;gap:10px;margin-bottom:12px; }
+    .user-avatar {
+      width:34px;height:34px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;font-size:.85rem;flex-shrink:0;
+    }
+    .av-admin   { background:var(--grad-admin); }
+    .av-teacher { background:var(--grad-teacher); }
+    .user-name  { font-size:.82rem;font-weight:600; }
+    .user-role  { font-size:.68rem;color:var(--muted); }
+    .btn-logout {
+      width:100%;padding:9px;border-radius:var(--r-md);
+      background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+      color:#f87171;font-family:var(--ff);font-weight:600;font-size:.82rem;
+      cursor:pointer;transition:all .18s;
+    }
+    .btn-logout:hover { background:rgba(239,68,68,.18); }
+
+    /* ── MAIN ── */
+    .main { margin-left:252px;padding:28px 32px;min-height:100vh; }
+    .page-header { margin-bottom:24px; }
+    .page-title  { font-size:1.6rem;font-weight:800; }
+    .page-sub    { color:var(--muted);font-size:.84rem;margin-top:3px; }
+    .header-row  { display:flex;justify-content:space-between;align-items:flex-start;gap:12px; }
+
+    /* ── KPI ── */
+    .kpi-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px; }
+    .kpi-card {
+      background:var(--card);border:1px solid var(--bdr);
+      border-radius:var(--r-lg);padding:20px;
+      position:relative;overflow:hidden;
+      transition:transform .2s,box-shadow .2s;
+    }
+    .kpi-card:hover { transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,.3); }
+    .kpi-label { font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em; }
+    .kpi-val   { font-size:2rem;font-weight:800;margin:6px 0 2px; }
+    .kpi-hint  { font-size:.75rem;color:var(--muted); }
+    .kpi-icon  { position:absolute;right:16px;top:16px;font-size:1.7rem;opacity:.22; }
+    .kpi-stripe {
+      position:absolute;bottom:0;left:0;right:0;height:3px;
+      background:var(--stripe,var(--grad));
+    }
+
+    /* ── CARD ── */
+    .card { background:var(--card);border:1px solid var(--bdr);border-radius:var(--r-lg);padding:22px;margin-bottom:20px; }
+    .card-title { font-size:.95rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px; }
+
+    /* ── TABLE ── */
+    .tbl-wrap { overflow-x:auto; }
+    table { width:100%;border-collapse:collapse;text-align:left; }
+    th { padding:11px 13px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--bdr); }
+    td { padding:12px 13px;border-bottom:1px solid rgba(255,255,255,.035);font-size:.88rem; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:rgba(255,255,255,.02); }
+
+    /* ── BADGE ── */
+    .badge { padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;display:inline-block; }
+    .bg-green  { background:rgba(16,185,129,.14);color:#34d399; }
+    .bg-yellow { background:rgba(245,158,11,.14);color:#fbbf24; }
+    .bg-red    { background:rgba(239,68,68,.14);color:#f87171; }
+    .bg-blue   { background:rgba(99,102,241,.14);color:#818cf8; }
+    .bg-purple { background:rgba(168,85,247,.14);color:#c084fc; }
+
+    /* ── BTN ── */
+    .btn { padding:9px 18px;border-radius:var(--r-md);font-family:var(--ff);font-weight:700;cursor:pointer;border:none;font-size:.85rem;transition:all .16s; }
+    .btn-pr { background:var(--grad);color:#fff;box-shadow:0 4px 16px var(--glow); }
+    .btn-pr:hover { opacity:.85;transform:translateY(-1px); }
+    .btn-ad { background:var(--grad-admin);color:#fff;box-shadow:0 4px 16px rgba(245,158,11,.25); }
+    .btn-ad:hover { opacity:.85;transform:translateY(-1px); }
+    .btn-sm { padding:5px 12px;font-size:.75rem; }
+
+    /* ── ALERT ── */
+    .alert { border-radius:var(--r-md);padding:12px 16px;font-size:.84rem;font-weight:500;margin-bottom:18px;display:flex;align-items:center;gap:10px; }
+    .a-info { background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:#a5b4fc; }
+    .a-warn { background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:#fcd34d; }
+    .a-admin { background:rgba(245,158,11,.08);border-left:3px solid #f59e0b;color:var(--text); }
+
+    /* ── PREDICTION CARDS ── */
+    .pred-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px; }
+    .pred-card { background:var(--card);border:1px solid var(--bdr);border-radius:var(--r-lg);padding:20px; }
+    .pred-score { font-size:2.2rem;font-weight:800; }
+    .c-green  { color:#34d399; }
+    .c-yellow { color:#fbbf24; }
+    .c-red    { color:#f87171; }
+    .c-acc    { color:#818cf8; }
+
+    /* ── INPUT ── */
+    .inp {
+      padding:10px 14px;background:rgba(255,255,255,.04);
+      border:1px solid var(--bdr);border-radius:var(--r-md);
+      color:var(--text);font-family:var(--ff);font-size:.9rem;outline:none;
+      transition:border-color .2s,box-shadow .2s;
+    }
+    .inp:focus { border-color:var(--acc);box-shadow:0 0 0 3px var(--glow); }
+    .inp::placeholder { color:#2a3347; }
+
+    /* ── ADMIN ONLY ── */
+    .admin-stripe { border-left:3px solid #f59e0b;padding-left:16px;margin-bottom:20px; }
+
+    /* ── LOADING ── */
+    .spinner { width:22px;height:22px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite;margin:60px auto;display:block; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    // ── AUTH GUARD (plain JS, runs before React) ──
+    const _raw = sessionStorage.getItem('edu_user');
+    if (!_raw) {
+      window.location.replace('login.html');
+    }
+  </script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const API = 'http://localhost:8080/api';
+
+    // ── NAV DEFINITIONS ──────────────────────────
+    const NAV_ADMIN = [
+      { id:'dashboard',  icon:'📊', label:'Dashboard',       sec:'Overview'    },
+      { id:'students',   icon:'👥', label:'All Students',    sec:'Management'  },
+      { id:'marks',      icon:'📚', label:'Marks & Results', sec:'Management'  },
+      { id:'attendance', icon:'📅', label:'Attendance',      sec:'Management'  },
+      { id:'prediction', icon:'🔮', label:'Prediction',      sec:'Analytics'   },
+      { id:'reports',    icon:'📈', label:'Reports',         sec:'Analytics'   },
+    ];
+    const NAV_TEACHER = [
+      { id:'dashboard',  icon:'📊', label:'Dashboard',       sec:'Overview'   },
+      { id:'marks',      icon:'📚', label:'My Marks Entry',  sec:'My Classes' },
+      { id:'attendance', icon:'📅', label:'My Attendance',   sec:'My Classes' },
+      { id:'prediction', icon:'🔮', label:'Prediction',      sec:'Analytics'  },
+    ];
+
+    // ── MOCK DATA (fallback if backend is offline) ──
+    const M_STUDENTS = [
+      {id:1,rollNumber:'CS202401',name:'Aarav Sharma', email:'aarav@univ.edu',  department:'Computer Science',      semester:6,batchYear:'2024'},
+      {id:2,rollNumber:'CS202402',name:'Priya Patel',  email:'priya@univ.edu',  department:'Computer Science',      semester:6,batchYear:'2024'},
+      {id:3,rollNumber:'IT202401',name:'Rohan Verma',  email:'rohan@univ.edu',  department:'Information Technology',semester:4,batchYear:'2024'},
+      {id:4,rollNumber:'IT202402',name:'Ananya Sen',   email:'ananya@univ.edu', department:'Information Technology',semester:4,batchYear:'2024'},
+      {id:5,rollNumber:'EC202401',name:'Vikram Singh', email:'vikram@univ.edu', department:'Electronics & Comm',    semester:6,batchYear:'2024'},
+      {id:6,rollNumber:'CS202403',name:'Neha Gupta',   email:'neha@univ.edu',   department:'Computer Science',      semester:6,batchYear:'2024'},
+      {id:7,rollNumber:'ME202401',name:'Kabir Mehta',  email:'kabir@univ.edu',  department:'Mechanical Eng',        semester:2,batchYear:'2024'},
+      {id:8,rollNumber:'CE202401',name:'Diya Roy',     email:'diya@univ.edu',   department:'Civil Eng',             semester:2,batchYear:'2024'},
+      {id:9,rollNumber:'CS202404',name:'Arjun Reddy',  email:'arjun@univ.edu',  department:'Computer Science',      semester:8,batchYear:'2024'},
+      {id:10,rollNumber:'IT202403',name:'Kavya Nair',  email:'kavya@univ.edu',  department:'Information Technology',semester:8,batchYear:'2024'},
+    ];
+    const M_MARKS = [
+      {id:1,studentName:'Aarav Sharma', subjectName:'Data Structures',       internalMarks:36,externalMarks:52,totalMarks:88,grade:'A'},
+      {id:2,studentName:'Priya Patel',  subjectName:'Database Systems',      internalMarks:25,externalMarks:38,totalMarks:63,grade:'C'},
+      {id:3,studentName:'Rohan Verma',  subjectName:'Java Programming',      internalMarks:15,externalMarks:22,totalMarks:37,grade:'F'},
+      {id:4,studentName:'Ananya Sen',   subjectName:'Computer Networks',     internalMarks:34,externalMarks:50,totalMarks:84,grade:'A'},
+      {id:5,studentName:'Neha Gupta',   subjectName:'Data Structures',       internalMarks:39,externalMarks:58,totalMarks:97,grade:'A+'},
+      {id:6,studentName:'Vikram Singh', subjectName:'Digital Electronics',   internalMarks:30,externalMarks:42,totalMarks:72,grade:'B'},
+      {id:7,studentName:'Kabir Mehta',  subjectName:'Thermodynamics',        internalMarks:24,externalMarks:36,totalMarks:60,grade:'C'},
+      {id:8,studentName:'Diya Roy',     subjectName:'Structural Engineering',internalMarks:31,externalMarks:49,totalMarks:80,grade:'A'},
+    ];
+    const M_ATT = [
+      {id:1,studentName:'Aarav Sharma', subjectName:'Data Structures',       totalClasses:40,attendedClasses:38,attendancePercentage:95.0},
+      {id:2,studentName:'Priya Patel',  subjectName:'Database Systems',      totalClasses:40,attendedClasses:30,attendancePercentage:75.0},
+      {id:3,studentName:'Rohan Verma',  subjectName:'Java Programming',      totalClasses:40,attendedClasses:20,attendancePercentage:50.0},
+      {id:4,studentName:'Ananya Sen',   subjectName:'Computer Networks',     totalClasses:40,attendedClasses:37,attendancePercentage:92.5},
+      {id:5,studentName:'Neha Gupta',   subjectName:'Data Structures',       totalClasses:40,attendedClasses:39,attendancePercentage:97.5},
+      {id:6,studentName:'Vikram Singh', subjectName:'Digital Electronics',   totalClasses:40,attendedClasses:34,attendancePercentage:85.0},
+    ];
+    const M_STATS = {totalStudents:10,averageMarksPercentage:76.5,averageAttendancePercentage:81.2,highRiskStudentsCount:1};
+    const M_PRED = [
+      {studentName:'Aarav Sharma', predictedScore:92.8, predictedGrade:'A+', riskLevel:'LOW'},
+      {studentName:'Priya Patel',  predictedScore:68.5, predictedGrade:'B',  riskLevel:'MEDIUM'},
+      {studentName:'Rohan Verma',  predictedScore:44.2, predictedGrade:'F',  riskLevel:'HIGH'},
+      {studentName:'Ananya Sen',   predictedScore:88.4, predictedGrade:'A',  riskLevel:'LOW'},
+      {studentName:'Neha Gupta',   predictedScore:95.6, predictedGrade:'A+', riskLevel:'LOW'},
+      {studentName:'Kabir Mehta',  predictedScore:62.0, predictedGrade:'C',  riskLevel:'MEDIUM'},
+    ];
+
+    async function api(path, fallback) {
+      try {
+        const r = await fetch(`${API}${path}`);
+        if (r.ok) return await r.json();
+        return fallback;
+      } catch { return fallback; }
+    }
+
+    // ─────────────────────────────────────────────
+    // SIDEBAR
+    // ─────────────────────────────────────────────
+    function Sidebar({ user, tab, setTab, onLogout }) {
+      const nav = user.role === 'ADMIN' ? NAV_ADMIN : NAV_TEACHER;
+      const sections = [...new Set(nav.map(n => n.sec))];
+      const isAdmin  = user.role === 'ADMIN';
+
+      return (
+        <aside className="sidebar slide-in">
+          <div className="brand-row">
+            <div className="brand-icon">🎓</div>
+            <div>
+              <div className="brand-name">EduAnalytics</div>
+              <div className="brand-sub">Performance Portal</div>
+            </div>
+          </div>
+
+          <div className={`role-pill ${isAdmin ? 'pill-admin' : 'pill-teacher'}`}>
+            {isAdmin ? '👑 Administrator' : '🧑‍🏫 Teacher'}
+          </div>
+
+          <nav>
+            {sections.map(sec => (
+              <div key={sec}>
+                <div className="nav-section">{sec}</div>
+                <ul className="nav-list">
+                  {nav.filter(n => n.sec === sec).map(n => (
+                    <li
+                      key={n.id}
+                      className={`nav-item ${tab === n.id ? (isAdmin ? 'active-admin' : 'active-teacher') : ''}`}
+                      onClick={() => setTab(n.id)}
+                    >
+                      <span className="nav-icon">{n.icon}</span>
+                      {n.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
+
+          <div className="sidebar-footer">
+            <div className="user-row">
+              <div className={`user-avatar ${isAdmin ? 'av-admin' : 'av-teacher'}`}>
+                {user.fullName?.[0] || 'U'}
+              </div>
+              <div>
+                <div className="user-name">{user.fullName}</div>
+                <div className="user-role">{user.email || user.username}</div>
+              </div>
+            </div>
+            <button className="btn-logout" onClick={onLogout} id="btn-logout">
+              🚪 Sign Out
+            </button>
+          </div>
+        </aside>
+      );
+    }
+
+    // ─────────────────────────────────────────────
+    // PAGES
+    // ─────────────────────────────────────────────
+
+    // DASHBOARD
+    function Dashboard({ user, students, stats }) {
+      const isAdmin = user.role === 'ADMIN';
+      return (
+        <div className="fade-up">
+          <div className="page-header">
+            <div className="header-row">
+              <div>
+                <h1 className="page-title">{isAdmin ? '📊 Admin Dashboard' : '📊 Teacher Dashboard'}</h1>
+                <p className="page-sub">{isAdmin ? 'System-wide overview — all departments and students' : 'Your class performance overview'}</p>
+              </div>
+              {isAdmin && <button className="btn btn-ad">📥 Export Report</button>}
+            </div>
+          </div>
+
+          {!isAdmin && (
+            <div className="alert a-info">ℹ️ You are viewing data for your assigned class only. Contact Admin for full system access.</div>
+          )}
+
+          <div className="kpi-grid">
+            {[
+              { label:'Total Students', val: stats?.totalStudents??10, hint:'enrolled this semester', icon:'👥', color:'#818cf8', stripe:'--grad' },
+              { label:'Avg Academic Score', val: `${stats?.averageMarksPercentage??76.5}%`, hint:'across all subjects', icon:'📚', color:'#6ee7b7', stripe:'var(--grad-teacher)' },
+              { label:'Avg Attendance', val: `${stats?.averageAttendancePercentage??81.2}%`, hint:'class participation', icon:'📅', color:'#34d399', stripe:'var(--grad-teacher)' },
+              { label:'High-Risk Students', val: stats?.highRiskStudentsCount??1, hint:'need immediate action', icon:'⚠️', color:'#f87171', stripe:'var(--grad-admin)' },
+            ].map(k => (
+              <div className="kpi-card" key={k.label}>
+                <div className="kpi-icon">{k.icon}</div>
+                <div className="kpi-label">{k.label}</div>
+                <div className="kpi-val" style={{color:k.color}}>{k.val}</div>
+                <div className="kpi-hint">{k.hint}</div>
+                <div className="kpi-stripe" style={{background:k.stripe}}></div>
+              </div>
+            ))}
+          </div>
+
+          {isAdmin && (
+            <div className="alert a-admin">
+              👑 <strong>Admin Actions:</strong>&nbsp;
+              <span style={{color:'#fbbf24',marginRight:'16px'}}>Add Student</span>
+              <span style={{color:'#fbbf24',marginRight:'16px'}}>Manage Teachers</span>
+              <span style={{color:'#fbbf24'}}>Generate Reports</span>
+            </div>
+          )}
+
+          <div className="card">
+            <div className="card-title">👥 {isAdmin ? 'All Students' : 'My Students'}</div>
+            <div className="tbl-wrap">
+              <table>
+                <thead><tr><th>Roll No</th><th>Name</th><th>Department</th><th>Semester</th><th>Status</th></tr></thead>
+                <tbody>
+                  {students.map(s => (
+                    <tr key={s.id}>
+                      <td style={{color:'#818cf8',fontWeight:700}}>{s.rollNumber}</td>
+                      <td style={{fontWeight:600}}>{s.name}</td>
+                      <td>{s.department}</td>
+                      <td>Sem {s.semester}</td>
+                      <td><span className="badge bg-green">Active</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // STUDENTS (admin only)
+    function Students({ students }) {
+      const [q, setQ] = useState('');
+      const filtered = students.filter(s =>
+        `${s.name} ${s.rollNumber} ${s.department}`.toLowerCase().includes(q.toLowerCase())
+      );
+      return (
+        <div className="fade-up">
+          <div className="page-header">
+            <div className="header-row">
+              <div>
+                <h1 className="page-title">👥 Students Directory</h1>
+                <p className="page-sub">Full enrollment database — {students.length} students across all departments</p>
+              </div>
+              <button className="btn btn-pr">➕ Add Student</button>
+            </div>
+          </div>
+          <div style={{marginBottom:'16px'}}>
+            <input className="inp" placeholder="🔍 Search by name, roll no, department…" style={{width:'340px'}} value={q} onChange={e=>setQ(e.target.value)} />
+          </div>
+          <div className="card">
+            <div className="tbl-wrap">
+              <table>
+                <thead><tr><th>Roll No</th><th>Name</th><th>Email</th><th>Department</th><th>Sem</th><th>Batch</th><th>Action</th></tr></thead>
+                <tbody>
+                  {filtered.map(s => (
+                    <tr key={s.id}>
+                      <td style={{color:'#818cf8',fontWeight:700}}>{s.rollNumber}</td>
+                      <td style={{fontWeight:600}}>{s.name}</td>
+                      <td style={{color:var_muted,fontSize:'.8rem'}}>{s.email}</td>
+                      <td><span className="badge bg-blue">{s.department}</span></td>
+                      <td>Sem {s.semester}</td>
+                      <td>{s.batchYear}</td>
+                      <td><button className="btn btn-pr btn-sm">View</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    const var_muted = 'var(--muted)';
+
+    // MARKS
+    function Marks({ user, marks }) {
+      const isAdmin = user.role === 'ADMIN';
+      const gc = g => g==='A+'||g==='A' ? 'bg-green' : g==='B'||g==='C' ? 'bg-yellow' : 'bg-red';
+      return (
+        <div className="fade-up">
+          <div className="page-header">
+            <div className="header-row">
+              <div>
+                <h1 className="page-title">📚 {isAdmin ? 'Marks & Results' : 'My Marks Entry'}</h1>
+                <p className="page-sub">Internal (max 40) + External (max 60) = Total out of 100</p>
+              </div>
+              <button className="btn btn-pr">➕ {isAdmin ? 'Add Marks' : 'Enter Marks'}</button>
+            </div>
+          </div>
+          {!isAdmin && <div className="alert a-warn">✏️ You can enter marks for your assigned subjects. Records are locked after admin approval.</div>}
+          <div className="card">
+            <div className="tbl-wrap">
+              <table>
+                <thead><tr><th>Student</th><th>Subject</th><th>Internal</th><th>External</th><th>Total</th><th>Grade</th></tr></thead>
+                <tbody>
+                  {marks.map(m => (
+                    <tr key={m.id}>
+                      <td style={{fontWeight:600}}>{m.studentName}</td>
+                      <td>{m.subjectName}</td>
+                      <td style={{textAlign:'center'}}>{m.internalMarks}</td>
+                      <td style={{textAlign:'center'}}>{m.externalMarks}</td>
+                      <td style={{textAlign:'center',fontWeight:700,color:'#818cf8'}}>{m.totalMarks ?? (m.internalMarks+m.externalMarks)}</td>
+                      <td><span className={`badge ${gc(m.grade)}`}>{m.grade}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ATTENDANCE
+    function Attendance({ user, att }) {
+      const pc = p => p>=75 ? 'bg-green' : p>=60 ? 'bg-yellow' : 'bg-red';
+      return (
+        <div className="fade-up">
+          <div className="page-header">
+            <div className="header-row">
+              <div>
+                <h1 className="page-title">📅 Attendance Tracker</h1>
+                <p className="page-sub">Minimum 75% required — below threshold flagged ⚠️</p>
+              </div>
+              <button className="btn btn-pr">📥 Mark Attendance</button>
+            </div>
+          </div>
+          <div className="kpi-grid">
+            <div className="kpi-card"><div className="kpi-label">Total Records</div><div className="kpi-val">{att.length}</div><div className="kpi-stripe" style={{background:'var(--grad)'}}></div></div>
+            <div className="kpi-card"><div className="kpi-label">Below 75%</div><div className="kpi-val c-red">{att.filter(a=>a.attendancePercentage<75).length}</div><div className="kpi-stripe" style={{background:'var(--grad-admin)'}}></div></div>
+            <div className="kpi-card"><div className="kpi-label">Above 90%</div><div className="kpi-val c-green">{att.filter(a=>a.attendancePercentage>=90).length}</div><div className="kpi-stripe" style={{background:'var(--grad-teacher)'}}></div></div>
+          </div>
+          <div className="card">
+            <div className="tbl-wrap">
+              <table>
+                <thead><tr><th>Student</th><th>Subject</th><th>Total Classes</th><th>Attended</th><th>Absent</th><th>Attendance %</th><th>Status</th></tr></thead>
+                <tbody>
+                  {att.map(a => (
+                    <tr key={a.id}>
+                      <td style={{fontWeight:600}}>{a.studentName}</td>
+                      <td>{a.subjectName}</td>
+                      <td style={{textAlign:'center'}}>{a.totalClasses}</td>
+                      <td style={{textAlign:'center',color:'#34d399'}}>{a.attendedClasses}</td>
+                      <td style={{textAlign:'center',color:'#f87171'}}>{a.totalClasses-a.attendedClasses}</td>
+                      <td style={{textAlign:'center',fontWeight:700}}>{a.attendancePercentage?.toFixed(1)}%</td>
+                      <td><span className={`badge ${pc(a.attendancePercentage)}`}>{a.attendancePercentage>=75?'✅ OK':'⚠️ Low'}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // PREDICTION
+    function Prediction({ preds }) {
+      const rc = r => r==='LOW' ? 'c-green' : r==='MEDIUM' ? 'c-yellow' : 'c-red';
+      const rb = r => r==='LOW' ? 'bg-green' : r==='MEDIUM' ? 'bg-yellow' : 'bg-red';
+      const ri = r => r==='LOW' ? '✅ Low Risk' : r==='MEDIUM' ? '⚠️ Medium Risk' : '🚨 High Risk';
+      const bc = r => r==='LOW' ? '#34d399' : r==='MEDIUM' ? '#f59e0b' : '#ef4444';
+      return (
+        <div className="fade-up">
+          <div className="page-header">
+            <h1 className="page-title">🔮 Result Prediction Engine</h1>
+            <p className="page-sub">Algorithm: <code style={{color:'#a5b4fc',background:'rgba(99,102,241,.1)',padding:'2px 8px',borderRadius:'6px'}}>Score = (Marks × 0.60) + (Attendance × 0.40)</code></p>
+          </div>
+          <div className="alert a-info">💡 Predictions are based on current internal marks and attendance data. Final results may vary.</div>
+          <div className="pred-grid">
+            {preds.map((p,i) => (
+              <div className="pred-card" key={i} style={{borderLeft:`3px solid ${bc(p.riskLevel)}`}}>
+                <div style={{fontWeight:700,fontSize:'.95rem',marginBottom:'6px'}}>{p.studentName}</div>
+                <div className={`pred-score ${rc(p.riskLevel)}`}>{p.predictedScore?.toFixed(1)}%</div>
+                <div style={{color:'var(--muted)',fontSize:'.82rem',marginTop:'4px'}}>
+                  Predicted Grade: <strong style={{color:'var(--text)'}}>{p.predictedGrade}</strong>
+                </div>
+                <div style={{marginTop:'12px'}}>
+                  <span className={`badge ${rb(p.riskLevel)}`}>{ri(p.riskLevel)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // REPORTS (admin only)
+    function Reports({ students, stats }) {
+      const depts = {};
+      students.forEach(s => { depts[s.department] = (depts[s.department]||0)+1; });
+      return (
+        <div className="fade-up">
+          <div className="page-header">
+            <div className="header-row">
+              <div>
+                <h1 className="page-title">📈 Academic Reports</h1>
+                <p className="page-sub">Semester-wise, department-wise analytics and exportable reports</p>
+              </div>
+              <button className="btn btn-ad">📥 Export PDF</button>
+            </div>
+          </div>
+          <div className="kpi-grid">
+            <div className="kpi-card"><div className="kpi-label">Departments</div><div className="kpi-val c-acc">{Object.keys(depts).length}</div><div className="kpi-stripe" style={{background:'var(--grad)'}}></div></div>
+            <div className="kpi-card"><div className="kpi-label">Total Students</div><div className="kpi-val">{stats?.totalStudents??10}</div><div className="kpi-stripe" style={{background:'var(--grad-teacher)'}}></div></div>
+            <div className="kpi-card"><div className="kpi-label">At-Risk Count</div><div className="kpi-val c-red">{stats?.highRiskStudentsCount??1}</div><div className="kpi-stripe" style={{background:'var(--grad-admin)'}}></div></div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px'}}>
+            <div className="card">
+              <div className="card-title">🏫 Department Breakdown</div>
+              {Object.entries(depts).map(([dep,cnt]) => (
+                <div key={dep} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--bdr)'}}>
+                  <span style={{fontSize:'.88rem'}}>{dep}</span>
+                  <span className="badge bg-blue">{cnt} students</span>
+                </div>
+              ))}
+            </div>
+            <div className="card">
+              <div className="card-title">📊 Grade Distribution</div>
+              {[['A+',2,'bg-green'],['A',2,'bg-green'],['B',2,'bg-yellow'],['C',2,'bg-yellow'],['F',1,'bg-red']].map(([g,n,cls]) => (
+                <div key={g} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--bdr)'}}>
+                  <span style={{fontSize:'.88rem'}}>Grade {g}</span>
+                  <span className={`badge ${cls}`}>{n} students</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─────────────────────────────────────────────
+    // ROOT APP
+    // ─────────────────────────────────────────────
+    function App() {
+      const stored = JSON.parse(sessionStorage.getItem('edu_user') || 'null');
+
+      const [user] = useState(stored);
+      const [tab,  setTab]  = useState('dashboard');
+      const [data, setData] = useState({ students:[], marks:[], att:[], stats:null, preds:[] });
+
+      useEffect(() => {
+        if (!user) return;
+        (async () => {
+          const [students, marks, att, stats, preds] = await Promise.all([
+            api('/students',           M_STUDENTS),
+            api('/marks',              M_MARKS),
+            api('/attendance',         M_ATT),
+            api('/analytics/dashboard',M_STATS),
+            api('/predictions',        M_PRED),
+          ]);
+          setData({ students, marks, att, stats, preds });
+        })();
+      }, []);
+
+      const logout = () => {
+        sessionStorage.removeItem('edu_user');
+        window.location.replace('login.html');
+      };
+
+      if (!user) return null; // guard already redirected
+
+      const isAdmin = user.role === 'ADMIN';
+
+      const page = () => {
+        switch(tab) {
+          case 'dashboard':  return <Dashboard  user={user} students={data.students} stats={data.stats} />;
+          case 'students':   return isAdmin ? <Students students={data.students}/> : <Dashboard user={user} students={data.students} stats={data.stats}/>;
+          case 'marks':      return <Marks      user={user} marks={data.marks} />;
+          case 'attendance': return <Attendance user={user} att={data.att} />;
+          case 'prediction': return <Prediction preds={data.preds} />;
+          case 'reports':    return isAdmin ? <Reports students={data.students} stats={data.stats}/> : null;
+          default:           return null;
+        }
+      };
+
+      return (
+        <div style={{display:'flex',minHeight:'100vh'}}>
+          <Sidebar user={user} tab={tab} setTab={setTab} onLogout={logout} />
+          <main className="main">{page()}</main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
